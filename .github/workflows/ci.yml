@@ -1,0 +1,33 @@
+name: macOS verification
+
+"on":
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Verify toolchain
+        run: |
+          xcode-select -p
+          swift --version
+          swift format --version
+      - name: Clean quality gate
+        run: make verify
+      - name: Universal build
+        if: matrix.os == 'macos-15'
+        run: make universal
+      - name: Formatting must already be committed
+        run: git diff --exit-code -- Package.swift Sources Tests
